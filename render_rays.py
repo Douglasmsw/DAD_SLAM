@@ -4,6 +4,7 @@ import numpy as np
 
 def occupancy_activation(alpha, distances=None):
     # occ = 1.0 - torch.exp(-alpha * distances)
+    # print("applying sigmoid activation")
     occ = torch.sigmoid(alpha)    # unisurf
 
     return occ
@@ -65,7 +66,7 @@ def render_loss(render, gt, loss="L1", normalise=False):
 
     return loss_mat
 
-'''
+''' # BRAD & DOUG
 def render_semantic_loss(clip_model, render, gt, loss="L1", normalize=False):
     render_emb = clip_model.encode_image(render)
     gt_emb = clip_model.encode_image(gt)
@@ -116,8 +117,12 @@ def reduce_batch_loss(loss_mat, var=None, avg=True, mask=None, loss_type="L1"):
     return loss
 
 def make_3D_grid(occ_range=[-1., 1.], dim=256, device="cuda:0", transform=None, scale=None):
+    print("Initializing linespace")
     t = torch.linspace(occ_range[0], occ_range[1], steps=dim, device=device)
+    print("Initializing meshgrid")
     grid = torch.meshgrid(t, t, t)
+ 
+    print("Building 3D grid")
     grid_3d = torch.cat(
         (grid[0][..., None],
          grid[1][..., None],
@@ -125,18 +130,26 @@ def make_3D_grid(occ_range=[-1., 1.], dim=256, device="cuda:0", transform=None, 
     )
 
     if scale is not None:
+        print("Scaling 3D grid")
         grid_3d = grid_3d * scale
     if transform is not None:
+        print("Transforming 3D grid")
+        print("Building transformation matrix rows")
         R1 = transform[None, None, None, 0, :3]
         R2 = transform[None, None, None, 1, :3]
         R3 = transform[None, None, None, 2, :3]
 
+        print("Building transformation matrix grids")
         grid1 = (R1 * grid_3d).sum(-1, keepdim=True)
         grid2 = (R2 * grid_3d).sum(-1, keepdim=True)
         grid3 = (R3 * grid_3d).sum(-1, keepdim=True)
+        print("Concatenating transformation matrix rows into 3D tensor")
         grid_3d = torch.cat([grid1, grid2, grid3], dim=-1)
-
+        
         trans = transform[None, None, None, :3, 3]
+        print("Adding transform to 3D transformation tensor")
         grid_3d = grid_3d + trans
 
+    print("Transformation grid complete\nReturning grid_3d")
+    torch.cuda.memory_summary() 
     return grid_3d

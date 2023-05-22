@@ -47,9 +47,9 @@ def init_loader(cfg, multi_worker=True):
 
     # init dataloader
     if multi_worker:
-        # multi worker loader
+        # multi worker loader # CHANGED NUM_WORKERS FROM 4 TO 2 BASED ON CLUSTER RESPONSE
         dataloader = DataLoader(dataset, batch_size=None, shuffle=False, sampler=None,
-                                batch_sampler=None, num_workers=4, collate_fn=None,
+                                batch_sampler=None, num_workers=2, collate_fn=None,
                                 pin_memory=True, drop_last=False, timeout=0,
                                 worker_init_fn=None, generator=None, prefetch_factor=2,
                                 persistent_workers=True)

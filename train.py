@@ -9,6 +9,8 @@ from functorch import vmap
 import argparse
 from cfg import Config
 import shutil
+import pickle as pkl
+# import clip
 
 if __name__ == "__main__":
     #############################################
@@ -26,16 +28,34 @@ if __name__ == "__main__":
     parser.add_argument('--save_ckpt',
                         default=False,
                         type=bool)
+    '''
+    parser.add_argument('--semantic_loss',
+                        default=False,
+                        type=bool)
+    parser.add_argument('--clip_model',
+                        default='ViT-B/32',
+                        type=str)
+    parser.add_argument('--sem_scale',
+                        default=1.0
+                        type=int)
+    '''
     args = parser.parse_args()
 
     log_dir = args.logdir
     config_file = args.config
     save_ckpt = args.save_ckpt
     os.makedirs(log_dir, exist_ok=True)  # saving logs
+    os.makedirs(f"{log_dir}/vis_items", exist_ok=True) # saving vis_dict items
     shutil.copy(config_file, log_dir)
     cfg = Config(config_file)       # config params
     n_sample_per_step = cfg.n_per_optim
     n_sample_per_step_bg = cfg.n_per_optim_bg
+
+    ''' # BRAD & DOUG
+    if arg.semantic_loss:
+        clip_model = clip.load(args.clip_model, device=cfg.training_device)
+        semantic_scaling = args.sem_scale
+    '''
 
     # param for vis
     '''
@@ -74,7 +94,7 @@ if __name__ == "__main__":
         # load dataset
         dataloader = dataset.init_loader(cfg)
         dataloader_iterator = iter(dataloader) 
-        dataset_len = len(dataloader) // 8 # ADJUST DATASET LENGTH
+        dataset_len = len(dataloader) // 10 # ADJUST DATASET LENGTH
     else:
         dataset_len = 1000000
         # # init ros node
@@ -305,7 +325,7 @@ if __name__ == "__main__":
                 batch_loss, _ = loss.step_batch_loss(batch_alpha, batch_color,
                                      batch_gt_depth.detach(), batch_gt_rgb.detach(),
                                      batch_obj_mask.detach(), batch_depth_mask.detach(),
-                                     batch_sampled_z.detach())
+                                     batch_sampled_z.detach()) # semantic_loss=args.semantic_loss, clip_model=clip_model, semantic_scaling=semantic_scaling) # BRAD & DOUG
 
                 if cfg.do_bg:
                     bg_data_idx = slice(iter_step * n_sample_per_step_bg, (iter_step + 1) * n_sample_per_step_bg)
@@ -314,7 +334,7 @@ if __name__ == "__main__":
                     bg_loss, _ = loss.step_batch_loss(bg_alpha[None, ...], bg_color[None, ...],
                                                      bg_gt_depth[None, bg_data_idx, ...].detach(), bg_gt_rgb[None, bg_data_idx].detach(),
                                                      bg_obj_mask[None, bg_data_idx, ...].detach(), bg_valid_depth_mask[None, bg_data_idx, ...].detach(),
-                                                     bg_sampled_z[None, bg_data_idx, ...].detach())
+                                                     bg_sampled_z[None, bg_data_idx, ...].detach()) # semantic_loss=args.semantic_loss, clip_model=clip_model, semantic_scaling=semantic_scaling) # BRAD & DOUG
                     batch_loss += bg_loss
 
             # with performance_measure(f"Backward"):
@@ -341,7 +361,9 @@ if __name__ == "__main__":
 
 
         ####################################################################
-        
+        '''
+        for i in range(10):
+            print(f"Entering vis mesh stage on {frame_id=}")
         # live vis mesh
         if (((frame_id % cfg.n_vis_iter) == 0 or frame_id == dataset_len-1) or
             (cfg.live_mode and time.time()-last_frame_time>cfg.keep_live_time)) and frame_id >= 10:
@@ -353,7 +375,11 @@ if __name__ == "__main__":
                     print("get bound failed obj ", obj_id)
                     continue
                 adaptive_grid_dim = int(np.minimum(np.max(bound.extent)//cfg.live_voxel_size+1, cfg.grid_dim))
+                for ting in range(10):
+                    print(f"Building mesh on {frame_id=}")
                 mesh = obj_k.trainer.meshing(bound, obj_k.obj_center, grid_dim=adaptive_grid_dim)
+                for _ in range(10):
+                    print(f"Mesh built {frame_id=}")
                 if mesh is None:
                     print("meshing failed obj ", obj_id)
                     continue
@@ -361,8 +387,13 @@ if __name__ == "__main__":
                 # save to dir
                 obj_mesh_output = os.path.join(log_dir, "scene_mesh")
                 os.makedirs(obj_mesh_output, exist_ok=True)
+                for i in range(10):
+                    print(f"\nExporting mesh at {frame_id=}")
                 mesh.export(os.path.join(obj_mesh_output, "frame_{}_obj{}.obj".format(frame_id, str(obj_id))))
-                ''' REMOVE LIVE VISUALIZATION BUT KEEP INTERNAL GEOMETRY REPRESENTATION
+                for i in range(10):
+                    print(f"\nSuccessfully exported mesh at {frame_id=}\n")
+                 # REMOVE LIVE VISUALIZATION BUT KEEP INTERNAL GEOMETRY REPRESENTATION
+                
                 # live vis
                 open3d_mesh = vis.trimesh_to_open3d(mesh)
                 vis3d.add_geometry(open3d_mesh)
@@ -370,7 +401,7 @@ if __name__ == "__main__":
                 # update vis3d
                 vis3d.poll_events()
                 vis3d.update_renderer()
-                
+               
         if False:    # follow cam
             cam = view_ctl.convert_to_pinhole_camera_parameters()
             T_CW_np = np.linalg.inv(twc.cpu().numpy())
@@ -379,9 +410,12 @@ if __name__ == "__main__":
             vis3d.poll_events()
             vis3d.update_renderer()
         '''
+        
         with performance_measure("saving ckpt"):
             if save_ckpt and ((((frame_id % cfg.n_vis_iter) == 0 or frame_id == dataset_len - 1) or
                                (cfg.live_mode and time.time() - last_frame_time > cfg.keep_live_time)) and frame_id >= 10):
+                for cluck in range(10):
+                    print(f"Saving checkpoint for {frame_id=}")
                 for obj_id, obj_k in vis_dict.items():
                     ckpt_dir = os.path.join(log_dir, "ckpt", str(obj_id))
                     os.makedirs(ckpt_dir, exist_ok=True)
@@ -390,6 +424,23 @@ if __name__ == "__main__":
                 # save current cam pose
                 cam_dir = os.path.join(log_dir, "cam_pose")
                 os.makedirs(cam_dir, exist_ok=True)
+                for chick in range(10):
+                    print(f"Saving cam pose for {frame_id=}")
                 torch.save({"twc": twc,}, os.path.join(cam_dir, "twc_frame_{}".format(frame_id) + ".pth"))
 
-
+        if ((frame_id % cfg.n_vis_iter == 0) and (frame_id > 10)) or frame_id == (dataset_len - 1):
+            print(f"Saving vis_dict at {frame_id=}")
+            for k,v in vis_dict.items(): # LOAD EACH ITEM AS A TUPLE IN A SEPARATE FILE
+                item_tuple = (k, v)
+                with open(f"{log_dir}/vis_items/item_{k}_obj.pickle", 'wb') as f:
+                    pkl.dump(item_tuple, f, protocol=pkl.HIGHEST_PROTOCOL)
+    
+    item_nums = [n for n,i in vis_dict.items()]
+    print(f"\N\NFINAL OBSERVED ITEM IDS:\n{item_nums}\n") # BRAD & DOUG: SAVE TO LOGS AS PICKLE FILE TO BE LOADED IN BY MESH_BUILD.PY
+        '''
+        if frame_id == (dataset_len - 1):
+            for final_p in range(10):
+                print(f"Saving vis_dict at {frame_id=}")
+            with open(f"{log_dir}/final_vis_dict.pickle", 'wb') as f:
+                pkl.dump(vis_dict, f, protocol=pickle.HIGHEST_PROTOCOL)
+        '''

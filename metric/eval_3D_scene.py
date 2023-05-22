@@ -47,7 +47,7 @@ if __name__ == "__main__":
         os.makedirs(output_path, exist_ok=True)
         if "vMAP" in exp_dir:
             mesh_list = os.listdir(mesh_dir)
-            if "frame_1999_scene.obj" in mesh_list:
+            if "frame_1999_scene.obj" in mesh_list: 
                 rec_meshfile = os.path.join(mesh_dir, "frame_1999_scene.obj")
             else: # compose obj into scene mesh
                 scene_meshes = []
@@ -60,7 +60,8 @@ if __name__ == "__main__":
                 scene_mesh.export(os.path.join(mesh_dir, "frame_1999_scene.obj"))
                 rec_meshfile = os.path.join(mesh_dir, "frame_1999_scene.obj")
         elif "iMAP" in exp_dir: # obj0 is the scene mesh
-            rec_meshfile = os.path.join(mesh_dir, "frame_1999_obj0.obj")
+            rec_meshfile = os.path.join(mesh_dir, "frame_1999_obj0.obj") # BRAD & DOUG, FIX THIS NAMING CONVENTION FOR NEW OBJ
+                                                    # DELETE FRAME A REPLACE WITH FINAL
         else:
             print("Not Implement")
             exit(-1)

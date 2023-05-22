@@ -6,15 +6,18 @@ import numpy as np
 def marching_cubes(occupancy, level=0.5):
     try:
         vertices, faces, vertex_normals, _ = skimage.measure.marching_cubes(    #marching_cubes_lewiner(    #marching_cubes(
-            occupancy, level=level, gradient_direction='ascent')
+            occupancy, level=level, gradient_direction='ascent') # extracts surface mesh from 3D volume
+            # see https://scikit-image.org/docs/stable/auto_examples/edges/plot_marching_cubes.html for documentation
     except (RuntimeError, ValueError):
        return None
 
     dim = occupancy.shape[0]
     vertices = vertices / (dim - 1)
+    print("Building trimesh")
     mesh = trimesh.Trimesh(vertices=vertices,
                            vertex_normals=vertex_normals,
-                           faces=faces)
+                           faces=faces) # builds trimesh object 
+                           # see https://trimsh.org/trimesh.html#trimesh.Trimesh for documentation
 
     return mesh
 

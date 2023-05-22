@@ -61,11 +61,11 @@
     },
     "vis": {
         "vis_device": "cuda:0",
-        "n_vis_iter": 500,
+        "n_vis_iter": 100,
         "n_bins_fine_vis": 10,
         "im_vis_reduce": 10,
         "grid_dim": 256,
-        "live_vis": 1,
+        "live_mode_vis": 1,
         "live_voxel_size": 0.005
     }
 }
