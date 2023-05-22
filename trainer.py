@@ -59,6 +59,9 @@ class Trainer:
             return None
 
         occ, _ = ret
+        del _
+        gc.collect()
+        torch.cuda.empty_cache()
         print("\nMarching cubes")
         mesh = vis.marching_cubes(occ.view(grid_dim, grid_dim, grid_dim).cpu().numpy())
         if mesh is None:
@@ -82,6 +85,9 @@ class Trainer:
         if ret is None:
             return None
         _, color = ret
+        del _
+        gc.collect()
+        torch.cuda.empty_cache()
         mesh_color = color * 255
         print("\nColoring vertices")
         vertex_colors = mesh_color.detach().squeeze(0).cpu().numpy().astype(np.uint8)
@@ -89,9 +95,10 @@ class Trainer:
 
         return mesh
 
-    def eval_points(self, points, chunk_size=100000): 
+    def eval_points(self, points, chunk_size=100000, object_iter="all"): 
         # 256^3 = 16777216
         alpha, color = [], []
+
         print(f"\nNum points: {points.shape[0]}")
         n_chunks = int(np.ceil(points.shape[0] / chunk_size))
         print(f"\n{n_chunks=}")
@@ -107,24 +114,47 @@ class Trainer:
                 embedding_k = self.pe(points[chunk_idx, ...])
                 del chunk_idx
                 gc.collect()
+                torch.cuda.empty_cache()
+
                 print(f"mapping color")
                 alpha_k, color_k = self.fc_occ_map(embedding_k)
                 del embedding_k
+                if object_iter == "alpha":
+                    del color_k
+                elif object_iter == "color":
+                    del alpha_k
                 gc.collect()
-                print(f"extending color")
-                alpha.extend(alpha_k.detach().squeeze())
-                color.extend(color_k.detach().squeeze())
+                torch.cuda.empty_cache()
+
+                if (object_iter == "alpha") or (object_iter == "all"):
+                    print(f"extending color")
+                    alpha.extend(alpha_k.detach().squeeze())
+                    print(f"{len(alpha)=}")
+                    print(f"{alpha[-1]=}")
+                
+                if (object_iter == "color") or (object_iter == "all"):
+                    color.extend(color_k.detach().squeeze())
+                    print(f"{len(color)=}")
+                    print(f"{color[-1]=}")
+                    print(f"Extended")
+
+                print(torch.cuda.memory_summary() )
                 del alpha_k
                 del color_k
                 gc.collect()
+                torch.cuda.empty_cache()
+
         print(f"stacking color")
         alpha = torch.stack(alpha)
         color = torch.stack(color)
 
         print(f"Occupancy activation")
         occ = render_rays.occupancy_activation(alpha).detach()
-        del alpha
+        if (object_iter == "alpha") or (object_iter == "all"):
+            del alpha
+            
         gc.collect()
+        torch.cuda.empty_cache()
         if occ.max() == 0:
             print("no occ")
             return None

@@ -4,6 +4,7 @@ import trimesh
 from metrics import accuracy, completion, completion_ratio
 import os
 import json
+from icecream import ic
 
 def calc_3d_metric(mesh_rec, mesh_gt, N=200000):
     """
@@ -67,9 +68,9 @@ def get_obj_ids(obj_dir):
 
 if __name__ == "__main__":
     background_cls_list = [5, 12, 30, 31, 40, 60, 92, 93, 95, 97, 98, 79]
-    exp_name = ["room0", "room1", "room2", "office0", "office1", "office2", "office3", "office4"]
-    data_dir = "/home/xin/data/vmap/"
-    log_dir = "../logs/iMAP/"
+    exp_name = ["room0"]#, "room1", "room2", "office0", "office1", "office2", "office3", "office4"]
+    data_dir = "./train_data/"
+    log_dir = "./logs/vMAP/"
     # log_dir = "../logs/vMAP/"
 
     for exp in tqdm(exp_name):
@@ -93,9 +94,9 @@ if __name__ == "__main__":
                 mesh_gt = trimesh.load(obj_file)
 
             if "vMAP" in exp_dir:
-                rec_meshfile = os.path.join(mesh_dir, "frame_1999_obj"+str(obj_id)+".obj")
+                rec_meshfile = os.path.join(mesh_dir, "final_obj"+str(obj_id)+".obj") # BRAD & DOUG MODIFIED LINES 96 AND 98 FROM FRAME_1999 TO FINAL
             elif "iMAP" in exp_dir:
-                rec_meshfile = os.path.join(mesh_dir, "frame_1999_obj0.obj")
+                rec_meshfile = os.path.join(mesh_dir, "final_obj0.obj")
             else:
                 print("Not Implement")
                 exit(-1)
@@ -112,6 +113,7 @@ if __name__ == "__main__":
             metrics_3D[3].append(metrics[3])    # comp ratio 5cm
         metrics_3D = np.array(metrics_3D)
         np.save(output_path + '/metrics_3D_obj.npy', metrics_3D)
+        ic(metrics_3D)
         print("metrics 3D obj \n Acc | Comp | Comp Ratio 1cm | Comp Ratio 5cm \n", metrics_3D.mean(axis=1))
         print("-----------------------------------------")
         print("finish exp ", exp)

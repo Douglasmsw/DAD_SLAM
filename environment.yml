@@ -20,6 +20,7 @@ dependencies:
   - gmp=6.2.1=h295c915_3
   - gnutls=3.6.15=he1e5248_0
   - idna=3.4=py38h06a4308_0
+  - icecream # ADDITION
   - imgviz # ADDITION
   - intel-openmp=2021.4.0=h06a4308_3561
   - jpeg=9e=h7f8727e_0
@@ -63,6 +64,7 @@ dependencies:
   - requests=2.28.1=py38h06a4308_0
   - setuptools=65.5.0=py38h06a4308_0
   - six=1.16.0=pyhd3eb1b0_1
+  - shapely # ADDITION 
   - sqlite=3.40.0=h5082296_0
   - tk=8.6.12=h1ccaba5_0
   - torchaudio=0.12.1=py38_cu113

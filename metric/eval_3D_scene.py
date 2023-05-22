@@ -32,15 +32,25 @@ def calc_3d_metric(mesh_rec, mesh_gt, N=200000):
     metrics[3].append(completion_ratio_rec)
     return metrics
 
+    ''' METRIC DESCRIPTIONS:
+    
+    Accuracy - avg distance b/w points sampled on reconstruction mesh and nearest ground truth point
+
+    Completion - avg distance b/w points sampled on ground truth mesh to nearest reconstruction mesh point
+
+    Completion Ration - pct of points in the reconstruction mesh with completion under 5cm
+
+    '''
 
 if __name__ == "__main__":
-    exp_name = ["room0", "room1", "room2", "office0", "office1", "office2", "office3", "office4"]
-    data_dir = "/home/xin/data/vmap/"
+    exp_name = ["room0"]#, "room1", "room2", "office0", "office1", "office2", "office3", "office4"]
+    data_dir = "./train_data/"
     # log_dir = "../logs/iMAP/"
-    log_dir = "../logs/vMAP/"
+    log_dir = "./logs/vMAP/"
 
     for exp in tqdm(exp_name):
-        gt_dir = os.path.join(data_dir, exp[:-1]+"_"+exp[-1]+"/habitat")
+        gt_dir = os.path.join(data_dir, exp[:-1]+"_"+exp[-1]) #+"/habitat")
+        #os.makedirs(gt_dir, exist_ok=True)
         exp_dir = os.path.join(log_dir, exp)
         mesh_dir = os.path.join(exp_dir, "scene_mesh")
         output_path = os.path.join(exp_dir, "eval_mesh")
@@ -66,13 +76,13 @@ if __name__ == "__main__":
             print("Not Implement")
             exit(-1)
         gt_mesh_files = os.listdir(gt_dir)
-        gt_mesh_file = os.path.join(gt_dir, "../mesh.ply")
+        gt_mesh_file = os.path.join(gt_dir, "mesh.ply")
         mesh_rec = trimesh.load(rec_meshfile)
         # mesh_rec.invert()   # niceslam mesh face needs invert
         metrics_3D = [[] for _ in range(4)]
         mesh_gt = trimesh.load(gt_mesh_file)
         metrics = calc_3d_metric(mesh_rec, mesh_gt, N=200000)  # for objs use 10k, for scene use 200k points
-        metrics_3D[0].append(metrics[0])    # acc
+        metrics_3D[0].append(metrics[0])    # acc 
         metrics_3D[1].append(metrics[1])    # comp
         metrics_3D[2].append(metrics[2])    # comp ratio 1cm
         metrics_3D[3].append(metrics[3])    # comp ratio 5cm

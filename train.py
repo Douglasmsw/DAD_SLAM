@@ -436,6 +436,8 @@ if __name__ == "__main__":
                     pkl.dump(item_tuple, f, protocol=pkl.HIGHEST_PROTOCOL)
     
     item_nums = [n for n,i in vis_dict.items()]
+    with open(f"{log_dir}/oberved_ids.pickle", 'wb') as f:
+                    pkl.dump(item_nums, f, protocol=pkl.HIGHEST_PROTOCOL)
     print(f"\N\NFINAL OBSERVED ITEM IDS:\n{item_nums}\n") # BRAD & DOUG: SAVE TO LOGS AS PICKLE FILE TO BE LOADED IN BY MESH_BUILD.PY
         '''
         if frame_id == (dataset_len - 1):
