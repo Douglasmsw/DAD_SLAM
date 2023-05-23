@@ -47,12 +47,12 @@ if __name__ == "__main__":
     
     save_ckpt = args.save_ckpt
     log_dir = cfg.output_dir # output / log directory
-    shutil.copy(config_file, log_dir)
 
     n_sample_per_step = cfg.n_per_optim
     n_sample_per_step_bg = cfg.n_per_optim_bg
 
     os.makedirs(log_dir, exist_ok=True)  # saving logs
+    shutil.copy(config_file, log_dir)
     os.makedirs(f"{log_dir}/vis_items", exist_ok=True) # saving vis_dict items
 
 
