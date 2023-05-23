@@ -21,7 +21,7 @@ if __name__ == "__main__":
     # setting params
     parser = argparse.ArgumentParser(description='Model training for single GPU')
     parser.add_argument('--logdir', default='./logs/debug',
-                        type=str)
+                        type=str) # NO LONGER NECESSARY, SPECIFIED IN CONFIG
     parser.add_argument('--config',
                         default='./configs/Replica/config_replica_room0_vMAP.json',
                         type=str)

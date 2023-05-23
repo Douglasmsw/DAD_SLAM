@@ -43,12 +43,14 @@ def calc_3d_metric(mesh_rec, mesh_gt, N=200000):
     '''
 
 if __name__ == "__main__":
-    exp_name = ["room0"]#, "room1", "room2", "office0", "office1", "office2", "office3", "office4"]
-    data_dir = "./train_data/"
+    exp_name = ["room0", "room1", "room2", "office0", "office1", "office2", "office3", "office4"]
+    data_dir = "./train_data/vmap/"
     # log_dir = "../logs/iMAP/"
     log_dir = "./logs/vMAP/"
 
+    print("Entering loop")
     for exp in tqdm(exp_name):
+        print("Building directories")
         gt_dir = os.path.join(data_dir, exp[:-1]+"_"+exp[-1]) #+"/habitat")
         #os.makedirs(gt_dir, exist_ok=True)
         exp_dir = os.path.join(log_dir, exp)
@@ -77,8 +79,10 @@ if __name__ == "__main__":
             exit(-1)
         gt_mesh_files = os.listdir(gt_dir)
         gt_mesh_file = os.path.join(gt_dir, "mesh.ply")
+        print("Loading ground truth mesh")
         mesh_rec = trimesh.load(rec_meshfile)
         # mesh_rec.invert()   # niceslam mesh face needs invert
+        print("Calculating metrics")
         metrics_3D = [[] for _ in range(4)]
         mesh_gt = trimesh.load(gt_mesh_file)
         metrics = calc_3d_metric(mesh_rec, mesh_gt, N=200000)  # for objs use 10k, for scene use 200k points

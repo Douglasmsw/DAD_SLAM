@@ -68,12 +68,14 @@ def get_obj_ids(obj_dir):
 
 if __name__ == "__main__":
     background_cls_list = [5, 12, 30, 31, 40, 60, 92, 93, 95, 97, 98, 79]
-    exp_name = ["room0"]#, "room1", "room2", "office0", "office1", "office2", "office3", "office4"]
-    data_dir = "./train_data/"
+    exp_name = ["room0", "room1", "room2", "office0", "office1", "office2", "office3", "office4"]
+    data_dir = "./train_data/vmap/"
     log_dir = "./logs/vMAP/"
     # log_dir = "../logs/vMAP/"
 
+    print("Entering environment loop")
     for exp in tqdm(exp_name):
+        print("Building directories")
         gt_dir = os.path.join(data_dir, exp[:-1]+"_"+exp[-1]+"/habitat")
         exp_dir = os.path.join(log_dir, exp)
         mesh_dir = os.path.join(exp_dir, "scene_mesh")
@@ -84,7 +86,9 @@ if __name__ == "__main__":
         # get obj ids
         # obj_ids = np.loadtxt()    # todo use a pre-defined obj list or use vMAP results
         obj_ids = get_obj_ids(mesh_dir.replace("iMAP", "vMAP"))
+        print("Entering object loop")
         for obj_id in tqdm(obj_ids):
+            print(f"Processing mesh path for \n\t{exp=}\n\t{obj_id=}")
             if obj_id == 0: # for bg
                 N = 200000
                 mesh_gt = get_gt_bg_mesh(gt_dir, background_cls_list)
@@ -101,8 +105,10 @@ if __name__ == "__main__":
                 print("Not Implement")
                 exit(-1)
 
+            print(f"Loading in mesh for \n\t{exp=}\n\t{obj_id=}")
             mesh_rec = trimesh.load(rec_meshfile)
             # mesh_rec.invert()   # niceslam mesh face needs invert
+            print(f"Calculating metrics for \n\t{exp=}\n\t{obj_id=}")
             metrics = calc_3d_metric(mesh_rec, mesh_gt, N=N)  # for objs use 10k, for scene use 200k points
             if metrics is None:
                 continue
