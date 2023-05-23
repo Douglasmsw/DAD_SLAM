@@ -1,7 +1,7 @@
 {
     "dataset": {
         "live": 0,
-        "path": "train_data/room_0/imap/00",
+        "path": "train_data/vmap/room_1/imap/00",
         "format": "Replica",
         "keep_alive": 20
     },
@@ -20,7 +20,8 @@
         "data_device": "cuda:0",
         "training_strategy": "vmap",
         "epochs": 1000000,
-        "scale": 1000.0
+        "scale": 1000.0,
+        "output": "logs/vMAP/room1"
     },
     "render": {
         "depth_range": [0.0, 8.0],

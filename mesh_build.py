@@ -24,11 +24,11 @@ if __name__ == "__main__":
     print(torch.cuda.memory_summary() )
     args = parser.parse_args()
     
-    log_dir = args.dir
     config_file = args.config
+    cfg = Config(config_file)       # config params
+    log_dir = cfg.output_dir
     os.makedirs(log_dir, exist_ok=True)  
     shutil.copy(config_file, log_dir)
-    cfg = Config(config_file)       # config params
 
     if args.item_ids != None:  # LINES 33 - 43 ARE MODIFICATIONS
         oberved_ids = args.item_ids

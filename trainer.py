@@ -7,9 +7,10 @@ import vis
 from cfg import Config
 from tqdm import tqdm
 import gc
-
+'''
 config_file = './configs/Replica/config_replica_room0_vMAP.json' # DOUG & BRAD FIX THIS JANK
 cfg = Config(config_file)       # config params
+'''
 class Trainer:
     def __init__(self, cfg):
         self.obj_id = cfg.obj_id
@@ -54,7 +55,7 @@ class Trainer:
         print("\nShifting grid center")
         grid_pc -= obj_center.to(grid_pc.device)
         print("Evaluating points")
-        ret = self.eval_points(grid_pc)
+        ret = self.eval_points(grid_pc, object_iter="alpha") # only care about occupancy output built from alpha
         if ret is None:
             return None
 
@@ -81,7 +82,7 @@ class Trainer:
         mesh.apply_transform(transform_np)
 
         vertices_pts = torch.from_numpy(np.array(mesh.vertices)).float().to(self.device)
-        ret = self.eval_points(vertices_pts)
+        ret = self.eval_points(vertices_pts, object_iter="color") # only care about color from output
         if ret is None:
             return None
         _, color = ret
@@ -119,45 +120,56 @@ class Trainer:
                 print(f"mapping color")
                 alpha_k, color_k = self.fc_occ_map(embedding_k)
                 del embedding_k
-                if object_iter == "alpha":
+
+                if object_iter == "alpha": # if exclusively collecting alpha, don't care about color
                     del color_k
-                elif object_iter == "color":
+
+                elif object_iter == "color": # if exclusively collecting color, don't care about alpha
                     del alpha_k
                 gc.collect()
                 torch.cuda.empty_cache()
 
-                if (object_iter == "alpha") or (object_iter == "all"):
-                    print(f"extending color")
+                if object_iter != "color": # if not exclusively tracking color, extend alpha
+                    print(f"extending alpha")
                     alpha.extend(alpha_k.detach().squeeze())
                     print(f"{len(alpha)=}")
                     print(f"{alpha[-1]=}")
                 
-                if (object_iter == "color") or (object_iter == "all"):
+                elif object_iter != "alpha": # if not exclusively tracking alpha, extend color
+                    print(f"extending color")
                     color.extend(color_k.detach().squeeze())
                     print(f"{len(color)=}")
                     print(f"{color[-1]=}")
-                    print(f"Extended")
+                
+                print(f"Extended")
 
                 print(torch.cuda.memory_summary() )
-                del alpha_k
-                del color_k
+                if object_iter != "color": # if not exclusively tracking color, clear memory of alpha
+                    del alpha_k
+
+                elif object_iter != "alpha": # if not exclusively tracking alpha, clear memory of color
+                    del color_k
                 gc.collect()
                 torch.cuda.empty_cache()
 
-        print(f"stacking color")
-        alpha = torch.stack(alpha)
-        color = torch.stack(color)
+        print(f"stacking")
+        if object_iter != "color": # if not exclusively tracking color, stack alpha
+            alpha = torch.stack(alpha)
+        elif object_iter != "alpha": # if not exclusively tracking aalpha, stack color
+            color = torch.stack(color)
 
         print(f"Occupancy activation")
-        occ = render_rays.occupancy_activation(alpha).detach()
-        if (object_iter == "alpha") or (object_iter == "all"):
-            del alpha
-            
+        if object_iter != "color": # if not exclusively tracking color, apply sigmoid activation to alphas
+            occ = render_rays.occupancy_activation(alpha).detach()
+            if occ.max() == 0:
+                print("no occ")
+                return None
+        else: # if exclusively tracking color, just return an empty list as occ
+            occ = []
+        
+        del alpha # done with alpha after calculating occ, so delete from memory
         gc.collect()
         torch.cuda.empty_cache()
-        if occ.max() == 0:
-            print("no occ")
-            return None
         
         return (occ, color)
 

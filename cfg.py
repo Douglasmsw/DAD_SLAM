@@ -19,6 +19,7 @@ class Config:
         self.imap_mode = config["trainer"]["imap_mode"]
         self.training_strategy = config["trainer"]["training_strategy"]  # "forloop" "vmap"
         self.obj_id = -1
+        self.output_dir = config["trainer"]["output"] # DOUG & BRAD ADDITION
 
         # dataset setting
         self.dataset_format = config["dataset"]["format"]

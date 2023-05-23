@@ -61,6 +61,7 @@ dependencies:
   - pytorch=1.12.1=py3.8_cuda11.3_cudnn8.3.2_0
   - pytorch-mutex=1.0=cuda
   - readline=8.2=h5eee18b_0
+  - regex # ADDITION
   - requests=2.28.1=py38h06a4308_0
   - setuptools=65.5.0=py38h06a4308_0
   - six=1.16.0=pyhd3eb1b0_1

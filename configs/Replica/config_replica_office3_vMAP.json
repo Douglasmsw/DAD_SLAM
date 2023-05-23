@@ -20,7 +20,8 @@
         "data_device": "cuda:0",
         "training_strategy": "vmap",
         "epochs": 1000000,
-        "scale": 1000.0
+        "scale": 1000.0,
+        "output": "logs/vMAP/office3"
     },
     "render": {
         "depth_range": [0.0, 8.0],

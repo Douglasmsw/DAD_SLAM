@@ -41,15 +41,20 @@ if __name__ == "__main__":
     '''
     args = parser.parse_args()
 
-    log_dir = args.logdir
+    # log_dir = args.logdir
     config_file = args.config
-    save_ckpt = args.save_ckpt
-    os.makedirs(log_dir, exist_ok=True)  # saving logs
-    os.makedirs(f"{log_dir}/vis_items", exist_ok=True) # saving vis_dict items
-    shutil.copy(config_file, log_dir)
     cfg = Config(config_file)       # config params
+    
+    save_ckpt = args.save_ckpt
+    log_dir = cfg.output_dir # output / log directory
+    shutil.copy(config_file, log_dir)
+
     n_sample_per_step = cfg.n_per_optim
     n_sample_per_step_bg = cfg.n_per_optim_bg
+
+    os.makedirs(log_dir, exist_ok=True)  # saving logs
+    os.makedirs(f"{log_dir}/vis_items", exist_ok=True) # saving vis_dict items
+
 
     ''' # BRAD & DOUG
     if arg.semantic_loss:
@@ -438,11 +443,12 @@ if __name__ == "__main__":
     item_nums = [n for n,i in vis_dict.items()]
     with open(f"{log_dir}/oberved_ids.pickle", 'wb') as f:
                     pkl.dump(item_nums, f, protocol=pkl.HIGHEST_PROTOCOL)
-    print(f"\N\NFINAL OBSERVED ITEM IDS:\n{item_nums}\n") # BRAD & DOUG: SAVE TO LOGS AS PICKLE FILE TO BE LOADED IN BY MESH_BUILD.PY
-        '''
-        if frame_id == (dataset_len - 1):
-            for final_p in range(10):
-                print(f"Saving vis_dict at {frame_id=}")
-            with open(f"{log_dir}/final_vis_dict.pickle", 'wb') as f:
-                pkl.dump(vis_dict, f, protocol=pickle.HIGHEST_PROTOCOL)
-        '''
+    print(f"\nTRAINING COMPLETE\n\nFINAL OBSERVED ITEM IDS:\n\t{item_nums}\n") # BRAD & DOUG: SAVE TO LOGS AS PICKLE FILE TO BE LOADED IN BY MESH_BUILD.PY
+    
+    '''
+    if frame_id == (dataset_len - 1):
+        for final_p in range(10):
+            print(f"Saving vis_dict at {frame_id=}")
+        with open(f"{log_dir}/final_vis_dict.pickle", 'wb') as f:
+            pkl.dump(vis_dict, f, protocol=pickle.HIGHEST_PROTOCOL)
+    '''
