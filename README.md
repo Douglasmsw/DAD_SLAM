@@ -70,6 +70,7 @@ The following commands will run vMAP / iMAP in a single-thread setting.
 ```bash
 python ./train.py --config ./configs/Replica/config_replica_room0_vMAP.json --save_ckpt True
 ```
+#### DAD Map
 If you would like to use the semantic training process, run the following.
 ```bash
 python ./train.py --config ./configs/Replica/config_replica_room0_vMAP.json --save_ckpt True --semantic_loss True --sem_scale [SEMANTIC LOSS TERM WEIGHT AS FLOAT]
