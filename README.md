@@ -68,11 +68,15 @@ The following commands will run vMAP / iMAP in a single-thread setting.
 
 #### vMAP
 ```bash
-python ./train.py --config ./configs/Replica/config_replica_room0_vMAP.json --logdir ./logs/vMAP/room0 --save_ckpt True
+python ./train.py --config ./configs/Replica/config_replica_room0_vMAP.json --save_ckpt True
+```
+If you would like to use the semantic training process, run the following.
+```bash
+python ./train.py --config ./configs/Replica/config_replica_room0_vMAP.json --save_ckpt True --semantic_loss True --sem_scale [SEMANTIC LOSS TERM WEIGHT AS FLOAT]
 ```
 #### iMAP
 ```bash
-python ./train.py --config ./configs/Replica/config_replica_room0_iMAP.json --logdir ./logs/iMAP/room0 --save_ckpt True
+python ./train.py --config ./configs/Replica/config_replica_room0_iMAP.json --save_ckpt True
 ```
 
 [comment]: <> (#### Multi thread demo)
@@ -84,6 +88,11 @@ python ./train.py --config ./configs/Replica/config_replica_room0_iMAP.json --lo
 [comment]: <> (```)
 
 ## Evaluation
+First, run the below line to construct and save the object and scene meshes estimated during training.
+```bash
+python ./mesh_build.py --config [PATH TO CONFIG FILE]
+```
+
 To evaluate the quality of reconstructed scenes, we provide two different methods,
 #### 3D Scene-level Evaluation
 The same metrics following the original iMAP, to compare with GT scene meshes by **Accuracy**, **Completion** and **Completion Ratio**.
