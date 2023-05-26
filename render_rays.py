@@ -1,6 +1,17 @@
 import torch
 import numpy as np
-# import clip
+import clip
+import torchvision
+import sys
+from torchvision.utils import save_image
+import gc
+
+# clip_model, _ = clip.load(args.clip_model, device=cfg.training_device, jit=args.jit)
+# preprocess = Compose([
+#     Resize(size=224, interpolation=Image.BICUBIC, max_size=None, antialias=False),
+#     CenterCrop(size=(224, 224)),
+#     Normalize(mean=(0.48145466, 0.4578275, 0.40821073), std=(0.26862954, 0.26130258, 0.27577711))
+#         ])
 
 def occupancy_activation(alpha, distances=None):
     # occ = 1.0 - torch.exp(-alpha * distances)
@@ -53,6 +64,7 @@ def render(termination, vals, dim=-1):
     return render
 
 def render_loss(render, gt, loss="L1", normalise=False):
+
     residual = render - gt
     if loss == "L2":
         loss_mat = residual ** 2
@@ -66,12 +78,33 @@ def render_loss(render, gt, loss="L1", normalise=False):
 
     return loss_mat
 
-''' # BRAD & DOUG
-def render_semantic_loss(clip_model, render, gt, loss="L1", normalize=False):
-    render_emb = clip_model.encode_image(render)
-    gt_emb = clip_model.encode_image(gt)
+def render_semantic_loss(clip_model, loss="L1", normalize=False, preprocess=None,
+                        full_gt_color=None, full_color=None, full_mask_depth=None):  # 3, X, Y
 
-    residual = render_emb - gt_emb
+    xdim, ydim = full_gt_color.size()[-2], full_gt_color.size()[-1]
+    full_color = full_color.reshape(shape = (full_color.shape[0], xdim, ydim, full_color.shape[2]))
+    full_color = full_color.permute(0, 3, 1, 2)
+
+    assert full_gt_color.size() == full_color.size()
+
+    if full_mask_depth != None:
+        full_color = full_color * full_mask_depth
+        full_gt_color = full_gt_color * full_mask_depth
+    full_gt_color = full_gt_color / 255
+    full_color = preprocess(full_color)
+    full_gt_color = preprocess(full_gt_color)
+
+
+    render_emb = clip_model.encode_image(full_color)
+    gt_emb = clip_model.encode_image(full_gt_color)
+
+    #gc.collect()
+    #torch.cuda.empty_cache()
+
+
+
+    residual = torch.sub(gt_emb, render_emb)
+
     if loss == "L2":
         loss_mat = residual ** 2
     elif loss == "L1":
@@ -79,11 +112,13 @@ def render_semantic_loss(clip_model, render, gt, loss="L1", normalize=False):
     else:
         print("loss type {} not implemented!".format(loss))
 
-    if normalise:
+    if normalize:
         loss_mat = loss_mat / gt_emb
+    
+    #gc.collect()
+    #torch.cuda.empty_cache()
 
     return loss_mat
-'''
 
 def reduce_batch_loss(loss_mat, var=None, avg=True, mask=None, loss_type="L1"):
     mask_num = torch.sum(mask, dim=-1)
@@ -151,5 +186,5 @@ def make_3D_grid(occ_range=[-1., 1.], dim=256, device="cuda:0", transform=None, 
         grid_3d = grid_3d + trans
 
     print("Transformation grid complete\nReturning grid_3d")
-    torch.cuda.memory_summary() 
+    # print(torch.cuda.memory_summary())
     return grid_3d

@@ -5,6 +5,10 @@ from metrics import accuracy, completion, completion_ratio
 import os
 import json
 from icecream import ic
+import sys
+sys.path.insert(1, "/net/projects/ranalab/justindoug/doug/robit/DAD_SLAM")
+from cfg import Config
+import argparse
 
 def calc_3d_metric(mesh_rec, mesh_gt, N=200000):
     """
@@ -67,11 +71,29 @@ def get_obj_ids(obj_dir):
 
 
 if __name__ == "__main__":
-    background_cls_list = [5, 12, 30, 31, 40, 60, 92, 93, 95, 97, 98, 79]
-    exp_name = ["room0", "room1", "room2", "office0", "office1", "office2", "office3", "office4"]
+    # setting params
+    parser = argparse.ArgumentParser(description='Model training for single GPU')
+    parser.add_argument('--config',
+                        default='./configs/Replica/config_replica_room0_vMAP.json',
+                        type=str)
+    parser.add_argument('--scenes',
+                        default=None,
+                        nargs='+')
+
+    args = parser.parse_args()
+
+    # log_dir = args.logdir
+    config_file = args.config
+    cfg = Config(config_file)
+    log_dir = '/'.join(cfg.output_dir.split('/')[:-1]) # WANT RELEVANT LOG DIRECTORY FROM CONFIG WITHOUT SCENE NAME AT END, IT GETS APPENDED LATER IN SCRIPT
     data_dir = "./train_data/vmap/"
-    log_dir = "./logs/vMAP/"
-    # log_dir = "../logs/vMAP/"
+
+    if args.scenes == None:
+        exp_name = ["room0", "room1", "room2", "office0", "office1", "office2", "office3", "office4"]
+    else:
+        exp_name = args.scenes
+
+    background_cls_list = [5, 12, 30, 31, 40, 60, 92, 93, 95, 97, 98, 79]
 
     print("Entering environment loop")
     for exp in tqdm(exp_name):

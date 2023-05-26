@@ -1,9 +1,13 @@
 import torch
 import render_rays
 import torch.nn.functional as F
+import gc
 
 def step_batch_loss(alpha, color, gt_depth, gt_color, sem_labels, mask_depth, z_vals,
-                    color_scaling=5.0, opacity_scaling=10.0, semantic_loss=False, clip_model=None, semantic_scaling=1):
+                    color_scaling=5.0, opacity_scaling=10.0, clip_model=None, 
+                    semantic_loss=False, semantic_scaling=1, norm='L1', preprocess=None, 
+                    full_alpha = None,
+                    full_gt_color=None, full_color=None,  full_mask_depth=None): # BRAD & DOUG
     """
     apply depth where depth are valid                                       -> mask_depth
     apply depth, color loss on this_obj & unkown_obj == (~other_obj)        -> mask_obj
@@ -18,8 +22,10 @@ def step_batch_loss(alpha, color, gt_depth, gt_color, sem_labels, mask_depth, z_
     mask_sem = sem_labels != 2
     mask_sem = mask_sem.detach()
 
+
     alpha = alpha.squeeze(dim=-1)
     color = color.squeeze(dim=-1)
+
 
     occupancy = render_rays.occupancy_activation(alpha)
     termination = render_rays.occupancy_to_termination(occupancy, is_batch=True)  # shape [num_batch, num_ray, points_per_ray]
@@ -40,17 +46,26 @@ def step_batch_loss(alpha, color, gt_depth, gt_color, sem_labels, mask_depth, z_
 
     # 2D color loss: only on obj mask
     # [mask_obj]
-    loss_col_raw = render_rays.render_loss(render_color, gt_color, loss="L1", normalise=False) # BRAD & DOUG: ADD SEMANTIC LOSS HERE 
+    loss_col_raw = render_rays.render_loss(render_color, gt_color, loss="L1", normalise=False) 
     loss_col = torch.mul(loss_col_raw.sum(-1), mask_obj)
     # loss_all += loss_col / 3. * color_scaling
     loss_col = render_rays.reduce_batch_loss(loss_col, var=None, avg=True, mask=mask_obj)
     
-    '''
-    #if semantic_loss:
-        loss_sem_raw = render_semantic_loss(clip_model, render, gt, loss="L1", normalize=False)
-        loss_sem = torch.mul(loss_sem_raw.sum(-1), mask_obj)
+    # BRAD & DOUG
+    if semantic_loss:
+        full_alpha = full_alpha.squeeze(dim=-1)
+        # batches channels height widthy
+        full_occupancy = render_rays.occupancy_activation(full_alpha)
+        full_termination = render_rays.occupancy_to_termination(full_occupancy, is_batch=True) 
+
+
+        render_pred = render_rays.render(full_termination[..., None], full_color, dim=-2)
+        
+
+        loss_sem_raw = render_rays.render_semantic_loss(clip_model, loss=norm, normalize=False, preprocess=preprocess,
+                                                        full_gt_color=full_gt_color, full_color=render_pred, full_mask_depth=full_mask_depth)
+        loss_sem = loss_sem_raw.sum(-1)
         loss_sem = render_rays.reduce_batch_loss(loss_sem, var=None, avg=True, mask=mask_obj)
-    '''
 
     # 2D occupancy/opacity loss: apply except unknown area
     # [mask_sem]
@@ -62,7 +77,6 @@ def step_batch_loss(alpha, color, gt_depth, gt_color, sem_labels, mask_depth, z_
     # loss_all += loss_opacity * opacity_scaling
     loss_opacity = render_rays.reduce_batch_loss(loss_opacity, var=None, avg=True, mask=mask_sem)   # todo var
 
-    '''
     if semantic_loss:
         # loss for bp
         l_batch = loss_depth + loss_col * color_scaling + loss_opacity * opacity_scaling + loss_sem * semantic_scaling
@@ -70,7 +84,7 @@ def step_batch_loss(alpha, color, gt_depth, gt_color, sem_labels, mask_depth, z_
     else:
         # loss for bp
         l_batch = loss_depth + loss_col * color_scaling + loss_opacity * opacity_scaling
-    '''
+   
     # loss for bp
     l_batch = loss_depth + loss_col * color_scaling + loss_opacity * opacity_scaling
     loss = l_batch.sum()

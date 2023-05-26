@@ -3,6 +3,10 @@ from tqdm import tqdm
 import trimesh
 from metrics import accuracy, completion, completion_ratio
 import os
+import argparse
+import sys
+sys.path.insert(1, "/net/projects/ranalab/justindoug/doug/robit/DAD_SLAM")
+from cfg import Config
 
 def calc_3d_metric(mesh_rec, mesh_gt, N=200000):
     """
@@ -43,10 +47,31 @@ def calc_3d_metric(mesh_rec, mesh_gt, N=200000):
     '''
 
 if __name__ == "__main__":
-    exp_name = ["room0", "room1", "room2", "office0", "office1", "office2", "office3", "office4"]
+    # setting params
+    parser = argparse.ArgumentParser(description='Model training for single GPU')
+    parser.add_argument('--config',
+                        default='./configs/Replica/config_replica_room0_vMAP.json',
+                        type=str)
+    parser.add_argument('--scenes',
+                        default=None,
+                        nargs='+')
+
+    args = parser.parse_args()
+
+    # log_dir = args.logdir
+    config_file = args.config
+    cfg = Config(config_file)
+    log_dir = '/'.join(cfg.output_dir.split('/')[:-1])
+
     data_dir = "./train_data/vmap/"
+
+    if args.scenes == None:
+        exp_name = ["room0", "room1", "room2", "office0", "office1", "office2", "office3", "office4"]
+    else:
+        exp_name = args.scenes
+
     # log_dir = "../logs/iMAP/"
-    log_dir = "./logs/vMAP/"
+    # log_dir = "./logs/vMAP/" # STORED IN CONFIG FILE NOW
 
     print("Entering loop")
     for exp in tqdm(exp_name):

@@ -10,6 +10,9 @@ import scipy
 from bidict import bidict
 import copy
 import os
+import sys
+import torchvision
+from icecream import ic
 
 import utils
 
@@ -314,9 +317,7 @@ class sceneObject:
         # open3d.visualization.draw_geometries([bbox3d, pcs])
         return bbox3d
 
-
-
-    def get_training_samples(self, n_frames, n_samples, cached_rays_dir):
+    def get_training_samples(self, n_frames, n_samples, cached_rays_dir, full_image=False):
         # Sample pixels
         if self.n_keyframes > 2: # make sure latest 2 frames are sampled    todo if kf pruned, this is not the latest frame
             keyframe_ids = torch.randint(low=0,
@@ -340,28 +341,71 @@ class sceneObject:
                                          dtype=torch.long,
                                          device=self.data_device)
         keyframe_ids = torch.unsqueeze(keyframe_ids, dim=-1)
+
         idx_w = torch.rand(n_frames, n_samples, device=self.data_device)
         idx_h = torch.rand(n_frames, n_samples, device=self.data_device)
 
-        # resizing idx_w and idx_h to be in the bbox range
-        idx_w = idx_w * (self.bbox[keyframe_ids, 1] - self.bbox[keyframe_ids, 0]) + self.bbox[keyframe_ids, 0]
+        # resizing idx_w and idx_h to be in the bbox range TODO BOUNDING BOX FUCK USE THIS FUCK
+        idx_w = idx_w * (self.bbox[keyframe_ids, 1] - self.bbox[keyframe_ids, 0]) + self.bbox[keyframe_ids, 0] 
+        #self.bbox[keyframe_ids]
+
         idx_h = idx_h * (self.bbox[keyframe_ids, 3] - self.bbox[keyframe_ids, 2]) + self.bbox[keyframe_ids, 2]
 
         idx_w = idx_w.long()
         idx_h = idx_h.long()
 
         sampled_rgbs = self.rgbs_batch[keyframe_ids, idx_w, idx_h]
+
+
+        #### DOWNSAMPLING RGB IMAGE
+        # We permute because rgbs_batch[keyframe_ids] shape is (10, 1, x, y, 4) and transform to (10, 4, x, y)
+        sampled_full_rgbs = self.rgbs_batch[keyframe_ids][:,0,...].permute((0, 3, 1, 2))
+        image_resize = torchvision.transforms.Resize(size=(sampled_full_rgbs.shape[2]//10, sampled_full_rgbs.shape[3]//10))
+
+        sampled_full_rgbs = image_resize(sampled_full_rgbs)
+        #sampled_full_rgbs = [image_resize(img) for img in sampled_full_rgbs]
+        
+        sampled_full_rgbs = sampled_full_rgbs.permute(0, 2, 3, 1)
+        sampled_full_rgbs_flattened = sampled_full_rgbs.reshape(shape = (sampled_full_rgbs.shape[0], sampled_full_rgbs.shape[1] * sampled_full_rgbs.shape[2], sampled_full_rgbs.shape[3]))
+
+
+        # print(sampled_rgbs.size())
+        # print(idx_w.size(), idx_h.size())
+
         sampled_depth = self.depth_batch[keyframe_ids, idx_w, idx_h]
 
+
+        ### DOWNSAMPLING FULL DEPTH
+        sampled_full_depth = self.depth_batch[keyframe_ids]
+        sampled_full_depth = image_resize(sampled_full_depth)
+
+        sampled_full_depth = sampled_full_depth.reshape(shape = (sampled_full_depth.shape[0], sampled_full_depth.shape[2] * sampled_full_depth.shape[3]))
+        # print(f"Sampled Full Depth: {sampled_full_depth.size()}\nSampled Depth: {sampled_depth.size()}")
+        #sys.exit()
+
         # Get ray directions for sampled pixels
-        sampled_ray_dirs = cached_rays_dir[idx_w, idx_h]
+        sampled_ray_dirs = cached_rays_dir[idx_w, idx_h] # ALL RAYS FOR FULL IMAGE, each is a long tensor of dimension length
+
+        ### DOWNSAMPLING RAYS
+        downsampled_cached_rays = image_resize(cached_rays_dir.permute(2,0,1)).permute(1,2,0)  # Permute from (x,y,3) -> (3,x,y) -> (x/6, y/6, 3) 
+
+        # Reshape to (x,y,3) -> (n_frames, x*y, 3)
+        full_sampled_rays_dirs = downsampled_cached_rays.reshape(shape = (downsampled_cached_rays.shape[0] * downsampled_cached_rays.shape[1], downsampled_cached_rays.shape[2])).repeat(n_frames, 1, 1)
+        
 
         # Get sampled keyframe poses
         sampled_twc = self.t_wc_batch[keyframe_ids[:, 0], :, :]
+        # print(sampled_twc.size())
 
-        origins, dirs_w = origin_dirs_W(sampled_twc, sampled_ray_dirs)
+        origins, dirs_w = origin_dirs_W(sampled_twc, sampled_ray_dirs) # GIVEN FRAME IDS, GET SAMPLED RAY DIRS AND TWC, THEN 
 
-        return self.sample_3d_points(sampled_rgbs, sampled_depth, origins, dirs_w)
+        full_origins, full_dirs_w = origin_dirs_W(sampled_twc, full_sampled_rays_dirs)
+
+        if full_image:
+            ret =  self.sample_3d_points(sampled_full_rgbs_flattened, sampled_full_depth, full_origins, full_dirs_w)
+            return sampled_full_rgbs[..., :3], ret[1], ret[2], sampled_full_rgbs[..., -1], ret[4], ret[5]
+        else:
+            return self.sample_3d_points(sampled_rgbs, sampled_depth, origins, dirs_w)
 
     def sample_3d_points(self, sampled_rgbs, sampled_depth, origins, dirs_w):
         """
@@ -401,7 +445,7 @@ class sceneObject:
             sampled_z[invalid_depth_mask, :] = stratified_bins(
                 self.min_bound, max_bound,
                 n_bins_cam2surface + n_bins, invalid_depth_count,
-                device=self.data_device)
+                device=self.data_device) # ALL PARAMS GIVEN IN CONFIG EXCDPT INVALID MASK DEPTH WHICH IS EASY BOOLEAN
 
         # sampling for valid depth rays
         valid_depth_mask = ~invalid_depth_mask
@@ -452,6 +496,8 @@ class sceneObject:
         sampled_z = sampled_z.view(sampled_rgbs.shape[0],
                                    sampled_rgbs.shape[1],
                                    -1)  # view as (n_rays, n_samples, 10)
+        # print("SAMPLED Z")
+        # print(sampled_z.size())
         input_pcs = origins[..., None, None, :] + (dirs_w[:, :, None, :] *
                                                    sampled_z[..., None])
         input_pcs -= self.obj_center
