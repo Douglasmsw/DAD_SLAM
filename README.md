@@ -4,8 +4,8 @@
 
 <p align="center">
 <h1 align="center">DAD SLAM: Semantic Neural Mapping for Neural Field SLAM</h1>
-<h2 align="center">Semantic Neural Mapping incorporates semantic loss into NeRF training to improve interpolation and decrease data need. More details can be found in our <a href="https://github.com/Douglasmsw/DAD_SLAM/blob/master/PAPER_Semantic_Neural_Mapping.pdf"><strong>paper</strong></a></h2>
-<h3>This prohject is built on top of vMAP. The original repo can be found <a href="https://github.com/kxhit/vMAP"><strong>here</strong>strong</a> and we have included their citations and heading content below.</h3>
+<h2 align="center">Semantic Neural Mapping incorporates semantic loss into NeRF training to improve interpolation and decrease data need. More details can be found in our <a href="https://github.com/Douglasmsw/DAD_SLAM/blob/master/PAPER_Semantic_Neural_Mapping.pdf"><strong>paper</strong></a>.</h2>
+<h3 align="center">>This prohject is built on top of vMAP. The original repo can be found <a href="https://github.com/kxhit/vMAP"><strong>here</strong>strong</a> and we have included their citations and heading content below.</h3>
   
 <br>
 
