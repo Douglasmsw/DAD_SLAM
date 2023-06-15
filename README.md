@@ -5,7 +5,7 @@
 <p align="center">
 
 <h1 align="center">This project builds on vMAP (details below)</h1>
-<h2 align="center">Semantic Neural Mapping incorporates semantic loss into NeRF training to improve interpolatoin and decrease data needs. More details can be found in the <a href="https://github.com/Douglasmsw/DAD_SLAM/blob/master/PAPER_Semantic_Neural_Mapping.pdf"><strong>paper</strong></a></h2>
+<h2 align="center">Semantic Neural Mapping incorporates semantic loss into NeRF training to improve interpolatoin and decrease data needs. More details can be found in our <a href="https://github.com/Douglasmsw/DAD_SLAM/blob/master/PAPER_Semantic_Neural_Mapping.pdf"><strong>paper</strong></a></h2>
 
   <h1 align="center">vMAP: Vectorised Object Mapping for Neural Field SLAM</h1>
   <p align="center">
